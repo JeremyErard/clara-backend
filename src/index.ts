@@ -29,7 +29,7 @@ app.use(express.json());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+  res.json({ status: 'healthy', version: '2.0.0', timestamp: new Date().toISOString() });
 });
 
 // Chat API routes
@@ -51,4 +51,3 @@ app.listen(PORT, () => {
 });
 
 export default app;
-// Deploy trigger Tue Jan 13 13:25:45 EST 2026
