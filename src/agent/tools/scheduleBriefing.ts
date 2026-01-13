@@ -1,7 +1,7 @@
 /**
  * Schedule Briefing Tool
  *
- * Presents scheduling options for qualified leads
+ * Presents scheduling options for qualified leads with tracking
  */
 
 import type { ToolContext, ToolResult } from './index.js';
@@ -16,24 +16,37 @@ const BRIEFING_TYPES = {
     title: 'Executive Briefing',
     description: 'A 30-minute call to discuss your specific situation and explore how SDI can help.',
     duration: '30 minutes',
-    calendlyUrl: 'https://calendly.com/sdi-clarity/executive-briefing',
+    baseCalendlyUrl: 'https://calendly.com/sdi-clarity/executive-briefing',
     bestFor: 'C-Suite and senior leaders exploring AI workforce optimization',
   },
   'discovery-call': {
     title: 'Discovery Call',
     description: 'A conversation to understand your challenges and discuss potential solutions.',
     duration: '30 minutes',
-    calendlyUrl: 'https://calendly.com/sdi-clarity/executive-briefing',
+    baseCalendlyUrl: 'https://calendly.com/sdi-clarity/executive-briefing',
     bestFor: 'HR and L&D leaders exploring outsourced partnerships',
   },
   'project-scoping': {
     title: 'Project Scoping Call',
-    description: 'Let\'s discuss your specific training project and provide a tailored proposal.',
+    description: "Let's discuss your specific training project and provide a tailored proposal.",
     duration: '30 minutes',
-    calendlyUrl: 'https://calendly.com/sdi-clarity/executive-briefing',
+    baseCalendlyUrl: 'https://calendly.com/sdi-clarity/executive-briefing',
     bestFor: 'L&D teams with specific training content needs',
   },
 };
+
+/**
+ * Build Calendly URL with tracking parameters
+ */
+function buildCalendlyUrl(baseUrl: string, conversationId: string, briefingType: string): string {
+  const params = new URLSearchParams({
+    utm_source: 'clara',
+    utm_medium: 'chat',
+    utm_campaign: briefingType,
+    utm_content: conversationId,
+  });
+  return `${baseUrl}?${params.toString()}`;
+}
 
 export async function handleScheduleBriefing(
   input: ScheduleBriefingInput,
@@ -51,6 +64,13 @@ export async function handleScheduleBriefing(
     };
   }
 
+  // Build URL with tracking parameters
+  const calendlyUrl = buildCalendlyUrl(
+    briefingInfo.baseCalendlyUrl,
+    context.conversationId,
+    briefingType
+  );
+
   return {
     success: true,
     data: {
@@ -58,7 +78,7 @@ export async function handleScheduleBriefing(
       title: briefingInfo.title,
       description: briefingInfo.description,
       duration: briefingInfo.duration,
-      calendlyUrl: briefingInfo.calendlyUrl,
+      calendlyUrl: calendlyUrl,
       context: callContext,
     },
     message: `Would you like to schedule a ${briefingInfo.title}? It's ${briefingInfo.duration} to discuss your specific situation.`,

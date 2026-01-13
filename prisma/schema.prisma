@@ -25,10 +25,15 @@ model Conversation {
   // Context gathered during conversation
   context      Json?     // Stores company info, role, etc.
 
+  // Experiment tracking
+  experimentId String?
+  variantId    String?
+
   // Relations
   messages     Message[]
   lead         Lead?     @relation(fields: [leadId], references: [id])
   leadId       String?
+  outcome      ConversationOutcome?
 
   @@index([sessionId])
   @@index([startedAt])
@@ -119,4 +124,96 @@ model Lead {
   @@index([quality])
   @@index([status])
   @@index([createdAt])
+}
+
+// ===========================================
+// Learning System Models
+// ===========================================
+
+// Experiment for A/B testing prompt variations
+model Experiment {
+  id          String    @id @default(cuid())
+  name        String
+  description String?   @db.Text
+  status      String    @default("draft") // draft, active, paused, completed
+  targetSize  Int?      // Target number of conversations
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  variants    Variant[]
+
+  @@index([status])
+}
+
+// Variant within an experiment
+model Variant {
+  id           String     @id @default(cuid())
+  experimentId String
+  experiment   Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?    @db.Text
+  promptDiff   Json       // JSON object describing prompt modifications
+  weight       Int        @default(50) // Traffic allocation weight (percentage)
+
+  // Relations
+  outcomes     ConversationOutcome[]
+  dailyMetrics DailyMetrics[]
+
+  @@index([experimentId])
+}
+
+// Outcome tracking for conversations in experiments
+model ConversationOutcome {
+  id              String       @id @default(cuid())
+  conversationId  String       @unique
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  variantId       String?
+  variant         Variant?     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  outcome         String       // scheduled, qualified, interested, bounced
+  outcomeAt       DateTime
+  messageCount    Int          @default(0)
+  durationSec     Int          @default(0)
+  visitorRole     String?
+  companySize     String?
+  industry        String?
+  primaryInterest String?
+  createdAt       DateTime     @default(now())
+
+  @@index([outcome])
+  @@index([variantId])
+}
+
+// Calendly event tracking
+model CalendlyEvent {
+  id              String   @id @default(cuid())
+  calendlyEventId String   @unique
+  conversationId  String?
+  email           String
+  eventType       String
+  scheduledAt     DateTime
+  status          String   @default("scheduled") // scheduled, completed, canceled, no_show
+  createdAt       DateTime @default(now())
+
+  @@index([email])
+  @@index([conversationId])
+}
+
+// Daily aggregated metrics per variant
+model DailyMetrics {
+  id             String   @id @default(cuid())
+  date           DateTime @db.Date
+  variantId      String
+  variant        Variant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  conversations  Int      @default(0)
+  scheduled      Int      @default(0)
+  qualified      Int      @default(0)
+  interested     Int      @default(0)
+  bounced        Int      @default(0)
+  avgMessages    Float    @default(0)
+  avgDurationSec Float    @default(0)
+
+  @@unique([date, variantId])
+  @@index([date])
 }

@@ -8,6 +8,9 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { chatRouter } from './routes/chat.js';
+import { webhooksRouter } from './routes/webhooks.js';
+import { analyticsRouter } from './routes/analytics.js';
+import { adminRouter } from './routes/admin.js';
 
 // Load environment variables
 dotenv.config();
@@ -29,11 +32,20 @@ app.use(express.json());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', version: '2.2.0', timestamp: new Date().toISOString() });
+  res.json({ status: 'healthy', version: '2.3.0', timestamp: new Date().toISOString() });
 });
 
 // Chat API routes
 app.use('/api', chatRouter);
+
+// Webhooks routes
+app.use('/webhooks', webhooksRouter);
+
+// Analytics routes
+app.use('/api/analytics', analyticsRouter);
+
+// Admin routes
+app.use('/api/admin', adminRouter);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
