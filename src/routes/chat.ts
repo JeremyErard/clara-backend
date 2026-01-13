@@ -106,14 +106,16 @@ chatRouter.post('/chat', async (req: Request, res: Response) => {
       onStream
     );
 
-    // Save assistant response
-    await saveMessage(
-      conversation.id,
-      'assistant',
-      result.response,
-      undefined,
-      result.toolResults.length > 0 ? result.toolResults : undefined
-    );
+    // Save assistant response (only if there's content)
+    if (result.response && result.response.trim().length > 0) {
+      await saveMessage(
+        conversation.id,
+        'assistant',
+        result.response,
+        undefined,
+        result.toolResults.length > 0 ? result.toolResults : undefined
+      );
+    }
   } catch (error) {
     console.error('Chat error:', error);
 

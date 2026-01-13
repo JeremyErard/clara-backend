@@ -77,12 +77,15 @@ async function handleToolCall(
 
 /**
  * Convert stored messages to Anthropic format
+ * Filters out messages with empty content to prevent API errors
  */
 function formatMessagesForApi(messages: AgentMessage[]): Anthropic.MessageParam[] {
-  return messages.map((msg) => ({
-    role: msg.role,
-    content: msg.content,
-  }));
+  return messages
+    .filter((msg) => msg.content && msg.content.trim().length > 0)
+    .map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    }));
 }
 
 /**
