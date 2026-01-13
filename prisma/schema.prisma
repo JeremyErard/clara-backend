@@ -1,0 +1,122 @@
+// Clara Backend Database Schema
+// Using Neon PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Conversation tracks a chat session
+model Conversation {
+  id           String    @id @default(cuid())
+  sessionId    String    // Browser session identifier
+  currentPage  String?   // Page visitor is on
+  startedAt    DateTime  @default(now())
+  lastActivity DateTime  @updatedAt
+
+  // Qualification tracking
+  leadScore    Int       @default(0)
+  leadQuality  String    @default("unknown") // hot, warm, cold, unknown
+
+  // Context gathered during conversation
+  context      Json?     // Stores company info, role, etc.
+
+  // Relations
+  messages     Message[]
+  lead         Lead?     @relation(fields: [leadId], references: [id])
+  leadId       String?
+
+  @@index([sessionId])
+  @@index([startedAt])
+}
+
+// Individual messages in a conversation
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role           String       // 'user' | 'assistant'
+  content        String       @db.Text
+
+  // Tool usage tracking
+  toolCalls      Json?        // Tool calls made in this message
+  toolResults    Json?        // Results from tool calls
+
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+// Lead information captured during conversations
+model Lead {
+  id            String   @id @default(cuid())
+
+  // Contact info (all optional for partial leads)
+  email         String?  @unique
+  firstName     String?
+  lastName      String?
+  phone         String?
+
+  // Company info
+  company       String?
+  companySize   String?  // e.g., "500-1000"
+  industry      String?
+  website       String?
+
+  // Role and authority
+  role          String?
+  roleLevel     String?  // C-Suite, Director, Manager, etc.
+
+  // Interest and qualification
+  primaryInterest    String?  // ai-assessment, outsourced-ld, consulting, training
+  secondaryInterests String[] // Additional interests
+
+  // Lead scoring
+  companyFitScore    Int      @default(0)  // Max 40
+  authorityScore     Int      @default(0)  // Max 30
+  intentScore        Int      @default(0)  // Max 30
+  totalScore         Int      @default(0)  // Max 100
+  quality            String   @default("unknown") // hot (70+), warm (40-69), cold (<40)
+
+  // Discovery information
+  painPoints         String[] // Specific challenges mentioned
+  hesitations        String[] // Concerns expressed
+  decisionCriteria   String[] // What will drive their decision
+  otherStakeholders  String[] // Other people involved
+  timeline           String?  // When they want to act
+
+  // Conversation summary
+  conversationSummary String?  @db.Text
+  keyMoments          String[] // Important conversation moments
+  infoRequested       String[] // Additional info they wanted
+  recommendedApproach String?  @db.Text // How to approach follow-up
+
+  // Source tracking
+  source        String?  // Where they came from
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+
+  // Status
+  status        String   @default("incomplete") // incomplete, complete, scheduled, contacted
+  scheduledAt   DateTime? // If they booked a meeting
+  contactedAt   DateTime? // When sales followed up
+
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  conversations Conversation[]
+
+  @@index([email])
+  @@index([quality])
+  @@index([status])
+  @@index([createdAt])
+}
