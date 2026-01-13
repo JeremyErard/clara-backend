@@ -19,6 +19,8 @@ import {
   type ToolContext,
   type ToolResult,
 } from './tools/index.js';
+import { getExperimentVariant } from '../learning/experiments.js';
+import { updateConversationOutcome } from '../services/outcome-tracker.js';
 
 /**
  * Message format for the agent
@@ -104,11 +106,30 @@ export async function runAgent(
   console.log('New user message:', userMessage.slice(0, 100));
   console.log('===================');
 
-  const systemPrompt = getSystemPrompt({
+  // Get base system prompt
+  const baseSystemPrompt = getSystemPrompt({
     currentPage: context.currentPage,
     companyName: context.companyName,
     visitorName: context.visitorName,
   });
+
+  // Apply experiment variant if active
+  const { experimentId, variantId, modifiedPrompt } = await getExperimentVariant(
+    context.sessionId,
+    baseSystemPrompt
+  );
+  const systemPrompt = modifiedPrompt;
+
+  // Store experiment assignment on conversation if new
+  if (experimentId || variantId) {
+    await prisma.conversation.update({
+      where: { id: context.conversationId },
+      data: {
+        experimentId: experimentId ?? undefined,
+        variantId: variantId ?? undefined,
+      },
+    });
+  }
 
   const messages = formatMessagesForApi([
     ...history,
@@ -211,6 +232,11 @@ export async function runAgent(
 
   // Signal completion
   onStream('', true);
+
+  // Update conversation outcome (non-blocking)
+  updateConversationOutcome(context.conversationId).catch(err => {
+    console.error('Error updating conversation outcome:', err);
+  });
 
   return {
     response: fullResponse,
