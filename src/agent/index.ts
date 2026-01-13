@@ -97,6 +97,13 @@ export async function runAgent(
   context: AgentContext,
   onStream: StreamCallback
 ): Promise<{ response: string; toolResults: ToolResult[] }> {
+  // Debug: Log conversation history
+  console.log('=== CLARA DEBUG ===');
+  console.log('History messages count:', history.length);
+  console.log('History:', history.map(m => ({ role: m.role, contentLength: m.content?.length || 0, preview: m.content?.slice(0, 50) })));
+  console.log('New user message:', userMessage.slice(0, 100));
+  console.log('===================');
+
   const systemPrompt = getSystemPrompt({
     currentPage: context.currentPage,
     companyName: context.companyName,
@@ -107,6 +114,8 @@ export async function runAgent(
     ...history,
     { role: 'user', content: userMessage },
   ]);
+
+  console.log('Messages to send to Claude:', messages.length);
 
   const toolContext: ToolContext = {
     conversationId: context.conversationId,

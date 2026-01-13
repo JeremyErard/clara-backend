@@ -29,7 +29,7 @@ app.use(express.json());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', version: '2.0.0', timestamp: new Date().toISOString() });
+  res.json({ status: 'healthy', version: '2.1.0-debug', timestamp: new Date().toISOString() });
 });
 
 // Chat API routes
