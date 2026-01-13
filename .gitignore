@@ -10,7 +10,6 @@ dist/
 .env.production
 
 # Prisma
-prisma/migrations/
 prisma/*.db
 
 # IDE
